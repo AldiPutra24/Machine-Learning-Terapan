@@ -184,4 +184,4 @@ content_based_recommender("Batman Forever", cosine_sim, df)
 ## Conclusion
 
 Kode ini berhasil mengimplementasikan sistem rekomendasi film berbasis konten menggunakan vektorisasi TF-IDF pada "overview" film. Dengan menghitung cosine similarity, sistem dapat menemukan 10 film teratas yang paling mirip berdasarkan konten teks "overview" film. Judul yang duplikat ditangani agar rekomendasi tetap unik, dan sistem ini dapat digunakan untuk merekomendasikan film apapun dalam dataset. Pendekatan ini efektif untuk rekomendasi berbasis konten, namun bisa ditingkatkan lebih lanjut dengan menambahkan fitur lain seperti genre atau rating pengguna.
-"""
+""" 
