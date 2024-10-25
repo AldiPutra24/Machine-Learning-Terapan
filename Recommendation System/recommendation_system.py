@@ -18,6 +18,7 @@ print("Path to dataset files:", path)
 
 """## Data Understanding
 
+### Mengunduh Dataset
 """
 
 # Mengimpor pandas untuk pemrosesan data dan beberapa modul dari scikit-learn
@@ -31,22 +32,47 @@ df = pd.read_csv('/root/.cache/kagglehub/datasets/rounakbanik/the-movies-dataset
 # Melihat 5 baris pertama dari dataset
 df.head()
 
+"""Dataset diambil dari Kaggle dengan menggunakan modul kagglehub, dan disimpan di direktori tertentu. Dataset yang digunakan disimpan dalam file movies_metadata.csv, yang kemudian dibaca dan diperiksa menggunakan pandas. Dilihat juga beberapa baris awal dataset untuk memahami struktur datanya.
+
+### Menampilkan Informasi Kolom
+"""
+
 # Menampilkan informasi dataset, termasuk jumlah kolom dan tipe data masing-masing kolom
 df.info()
+
+"""Informasi tentang dataset seperti jumlah kolom, tipe data masing-masing kolom, dan jumlah nilai yang hilang ditampilkan untuk lebih memahami struktur dataset.
+
+### Statistik Deskriptif
+"""
 
 # Menampilkan statistik deskriptif dari dataset, dengan perhitungan persentil tambahan
 df.describe([0, 0.05, 0.50, 0.95, 0.99, 1]).T
 
+"""Statistik deskriptif juga digunakan untuk melihat ringkasan statistik dari kolom-kolom numerik seperti revenue, runtime, vote_average, dan vote_count.
+
+### Memeriksa Missing Values
+"""
+
 # Memeriksa jumlah nilai yang hilang (missing values) di setiap kolom dataset
 df.isnull().sum()
 
-"""## Data Preparation"""
+"""Data diperiksa untuk melihat adanya nilai yang hilang di setiap kolom dataset.
+
+## Data Preparation
+
+### Mengisi Missing Values
+"""
 
 # Mengisi nilai yang hilang pada kolom 'overview' dengan string kosong
 df['overview'] = df['overview'].fillna('')
 
 # Memastikan bahwa tidak ada lagi nilai yang hilang di kolom 'overview'
 df['overview'].isnull().sum()
+
+"""Missing Values di kolom overview diisi dengan string kosong untuk memastikan data tersebut tidak menghambat proses selanjutnya.
+
+### Mengonversi Kolom overview menjadi TF-IDF
+"""
 
 # Membuat objek TF-IDF Vectorizer dan menghapus stop words bahasa Inggris
 tfidf = TfidfVectorizer(stop_words="english")
@@ -63,6 +89,11 @@ df['title'].shape
 # Mengonversi matriks TF-IDF menjadi array (tidak selalu diperlukan, hanya untuk melihat isi matriksnya)
 tfidf_matrix.toarray()
 
+"""Menggunakan TF-IDF (Term Frequency-Inverse Document Frequency), teks dalam kolom overview diubah menjadi representasi vektor yang akan digunakan untuk menghitung kesamaan antar film.
+
+### Menghitung Cosine Similarity
+"""
+
 # Menghitung cosine similarity antara vektor TF-IDF untuk menemukan kesamaan antar film
 cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
@@ -71,6 +102,11 @@ cosine_sim.shape
 
 # Menampilkan kesamaan film pada indeks ke-1 dengan semua film lainnya
 cosine_sim[1]
+
+"""Setelah vektor TF-IDF terbentuk, dilakukan perhitungan kesamaan antar film menggunakan metode cosine similarity.
+
+### Menghapus Duplikasi Judul Film
+"""
 
 # Membuat Series di mana indeks adalah judul film dan nilai adalah indeks baris film
 indices = pd.Series(df.index, index=df['title'])
@@ -87,13 +123,18 @@ indices = indices[~indices.index.duplicated(keep='last')]
 # Menampilkan indeks dari "Cinderella" setelah duplikat dihapus
 indices["Cinderella"]
 
+"""Dataset mengandung beberapa judul film yang duplikat. Duplikasi ini dihapus dengan menyimpan hanya satu entri untuk setiap judul film."""
+
 # Mengambil indeks film "Cinderella"
 movie_index = indices["Cinderella"]
 
 # Menampilkan skor kesamaan film "Cinderella" dengan semua film lainnya
 cosine_sim[movie_index]
 
-"""## Modeling and Result"""
+"""## Modeling and Result
+
+### Memilih Film untuk Dicari Kemiripannya
+"""
 
 # Membuat DataFrame yang berisi skor kesamaan antara "Cinderella" dan film lainnya
 similarity_scores = pd.DataFrame(cosine_sim[movie_index], columns=["score"])
@@ -103,6 +144,11 @@ movie_indices = similarity_scores.sort_values("score", ascending=False)[1:11].in
 
 # Menampilkan judul film yang mirip dengan "Cinderella"
 df['title'].iloc[movie_indices]
+
+"""Pada tahap ini, kami mengambil contoh film dengan judul "Cinderella" dan menghitung kesamaan antara film ini dengan semua film lainnya menggunakan nilai dari cosine similarity.
+
+### Function Rekomendasi Film Content Based dengan TF-IDF dan Cosine Similarity
+"""
 
 # Membuat fungsi untuk merekomendasikan film berdasarkan konten (overview)
 def content_based_recommender(title, cosine_sim, dataframe):
@@ -116,15 +162,26 @@ def content_based_recommender(title, cosine_sim, dataframe):
     similarity_scores = pd.DataFrame(cosine_sim[movie_index], columns=["score"])
     # Mengambil 10 film teratas yang mirip, kecuali film itu sendiri
     movie_indices = similarity_scores.sort_values("score", ascending=False)[1:11].index
-    return dataframe['title'].iloc[movie_indices]
 
-# Mencoba fungsi rekomendasi untuk film "Minions"
-content_based_recommender("Minions", cosine_sim, df)
+    # Mengembalikan judul film beserta skor kesamaannya
+    result = similarity_scores.loc[movie_indices]
+    result['title'] = dataframe['title'].iloc[movie_indices].values
+    return result.reset_index(drop=True)[['title', 'score']]
 
-# Mencoba fungsi rekomendasi untuk film "Family"
-content_based_recommender("Family", cosine_sim, df)
+"""### Menampilkan Rekomendasi Film"""
 
-"""## Conclusion
+# Mencoba fungsi rekomendasi untuk film "Toy Story"
+content_based_recommender("Toy Story", cosine_sim, df)
+
+# Mencoba fungsi rekomendasi untuk film "Vampire"
+content_based_recommender("Vampire", cosine_sim, df)
+
+# Mencoba fungsi rekomendasi untuk film "Batman Forever"
+content_based_recommender("Batman Forever", cosine_sim, df)
+
+"""Setelah menghitung kesamaan, diambil 10 film teratas yang memiliki kesamaan tertinggi dengan Film yang dipilih, kecuali Film itu sendiri. Film-film ini merupakan hasil dari sistem rekomendasi berbasis konten.
+
+## Conclusion
 
 Kode ini berhasil mengimplementasikan sistem rekomendasi film berbasis konten menggunakan vektorisasi TF-IDF pada "overview" film. Dengan menghitung cosine similarity, sistem dapat menemukan 10 film teratas yang paling mirip berdasarkan konten teks "overview" film. Judul yang duplikat ditangani agar rekomendasi tetap unik, dan sistem ini dapat digunakan untuk merekomendasikan film apapun dalam dataset. Pendekatan ini efektif untuk rekomendasi berbasis konten, namun bisa ditingkatkan lebih lanjut dengan menambahkan fitur lain seperti genre atau rating pengguna.
 """
